@@ -38,14 +38,22 @@ app.post('/uploadFile', fileUpload.single('pdf'), (req, res) => {
   res.status(200).json({ success: true, message: 'File uploaded successfully.', data: filePath });
 });
 
-function findRoomBySocketId(socketId) {
-  for (const [roomId, room] of rooms.entries()) {
-    const socket = room.users.find((socket) => socket.id === socketId);
-    if (socket) {
-      return roomId;
+function findRoomBySocketId(id) {
+  for (const room of rooms.values()) {
+    const user = room.users.find((user) => user.id === id);
+    if (user) {
+      return user;
     }
   }
-  return null;
+  return null; // User not found
+}
+
+function deleteUserFromRoom(roomId, name) {
+  if (rooms.has(roomId)) {
+    const room = rooms.get(roomId);
+    room.users = room.users.filter(user => user.name !== name);
+    rooms.set(roomId, room);
+  }
 }
 
 
@@ -57,39 +65,65 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("callEnded")
   });
 
-  socket.on('checkRoom', () => {
-    const roomId = findRoomBySocketId(socket.id);
-    const isInRoom = roomId !== null;
-    socket.emit('roomCheckResult', { isInRoom, roomId });
-  });
 
-  socket.on("joinRoom", (data) => {
-    const { roomId, name } = data;
-
-    // const existingUser = rooms.get(roomId)?.users.find((user) => user.name === name);
-
-    // Join the specified room
-    socket.join(roomId);
-    // Store the room name and associated users
-    if (!rooms.has(roomId)) {
-      rooms.set(roomId, {
-        name: roomId,
-        users: [{ id: socket.id, name, stream: { video: true, audio: true } }],
-      });
-    } else {
-      const room = rooms.get(roomId);
-      room.users.push({ id: socket.id, name, stream: { video: true, audio: true } });
-      rooms.set(roomId, room);
+  socket.on("joinRoom", ({ roomId, name, currentStream, socketId }) => {
+    if (rooms.has(roomId)) {
+      let chec = rooms.get(roomId);
+      console.log( chec );
     }
+    // Check if the socket.id already exists in the room
+    const existingUser = rooms.has(roomId)
+      ? rooms.get(roomId).users.find((user) => user.id === socketId)
+      : undefined;
 
-    console.log(rooms);
+    if (existingUser) {
+      return console.log(`User ${socketId} is already in room: ${roomId}`);
+
+    } else {
+
+      // Join the specified room
+      socket.join(roomId);
+      // Store the room name and associated users
+      if (!rooms.has(roomId)) {
+        rooms.set(roomId, {
+          name: roomId,
+          users: [{ id: socketId, name, stream: { streamData: currentStream, video: true, audio: true } }],
+        });
+      } else {
+        const room = rooms.get(roomId);
+        room.users.push({ id: socketId, name, stream: { streamData: currentStream, video: true, audio: true } });
+        rooms.set(roomId, room);
+      }
+
+    }
+    // console.log(rooms);
 
     // Broadcast the updated room details to all clients in the room
-    io.to(roomId).emit("all users", rooms.get(roomId).users.map(socket => socket));
+    io.to(roomId).emit("all users", rooms.get(roomId));
     // Broadcast the updated room details to all clients in the room
     // io.to(roomId).emit("roomDetails", rooms.get(roomId));
 
-    console.log(`User ${socket.id} joined room: ${roomId}`);
+    console.log(`User ${socketId} joined room: ${roomId}`);
+  });
+
+
+  socket.on("BE-call-user", ({ userToCall, from, signal }) => {
+    // console.log("io.sockets.sockets.get(socket.id)  : -----------------");
+    // console.log(io.sockets.sockets.get(socket.id));
+    // console.log(signal);
+    io.to(userToCall).emit("FE-receive-call", {
+      signal,
+      from,
+      info: findRoomBySocketId(socket.id),
+    });
+  });
+
+
+  socket.on("BE-accept-call", ({ signal, to }) => {
+    io.to(to).emit("FE-call-accepted", {
+      signal,
+      answerId: socket.id,
+    });
   });
 
   socket.on('sending signal', (payload) => {
@@ -100,7 +134,7 @@ io.on("connection", (socket) => {
   socket.on('send-message', ({ roomId, sender, message, time, isFile }, callback) => {
 
     try {
-      console.log({ roomId, sender, message, time, isFile });
+      // console.log({ roomId, sender, message, time, isFile });
       io.to(roomId).emit('receive-message', { sender, message, time, isFile }); // Emit the message to all clients in the room
 
       callback(); // Invoke the callback function to acknowledge successful message sending
@@ -111,13 +145,17 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("callUser", ({ userToCall, signalData, from, name }) => {
-    io.to(userToCall).emit("callUser", { signal: signalData, from, name });
+  socket.on("BE-leave-room", ({ roomId, name }) => {
+    deleteUserFromRoom(roomId, name)
+    console.log(rooms);
+    console.log(`${socket.id} left room ${roomId}`);
+    socket.broadcast
+      .to(roomId)
+      .emit("FE-user-leave", { userId: socket.id, userName: name });
+    socket.leave(roomId); // Leave the room using the socket itself
   });
 
-  socket.on("answerCall", (data) => {
-    io.to(data.to).emit("callAccepted", data.signal)
-  });
+
 });
 
 server.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
