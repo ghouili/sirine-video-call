@@ -1,34 +1,17 @@
 import React, { useEffect, useRef } from "react";
 
-// import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-// import { faVideo, faKeyboard } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faVideo, faKeyboard } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "react-router-dom";
 import swal from "sweetalert";
 
 import "./HomePage.scss";
 import Header from "../UI/Header/Header";
-import { socket } from "../../Socket";
-// import socket from "../../Socket";
 
 function HomePage() {
   const navigate = useNavigate();
   const roomRef = useRef();
   const userRef = useRef();
-  // const user = JSON.parse(localStorage.getItem("user"));
-  // const user = {firstname: 'test'};
-  // useEffect(() => {
-  //   socket.on("FE-error-user-exist", ({ error }) => {
-  //     if (!error) {
-  //       const roomName = roomRef.current.value;
-  //       const userName = userRef.current.value;
-
-  //       sessionStorage.setItem("user", userName);
-  //       navigate(`/${roomName}`);
-  //     } else {
-  //       swal("Warning!", "User name already exist", "warning");
-  //     }
-  //   });
-  // }, [socket]);
 
   function clickJoin() {
     if (!roomRef.current.value || !userRef.current.value) {
@@ -37,19 +20,7 @@ function HomePage() {
     }
     const roomName = roomRef.current.value;
     const userName = userRef.current.value;
-
-    // socket.emit("joinRoom", { roomId: roomName, name: userName });
-    // Storing a variable in localStorage
-    localStorage.setItem("name", userName);
-    localStorage.setItem("roomId", roomName);
-    navigate(`/${roomName}`);
-    // console.log(roomName);
-
-    // if (!roomName || !userName) {
-    //   swal("Warning!", "Enter Room Name or User Name", "warning");
-    // } else {
-    //   socket.emit("BE-check-user", { roomId: roomName, userName });
-    // }
+    navigate(`${userName}/${roomName}`);
   }
 
   return (
@@ -75,17 +46,13 @@ function HomePage() {
             </button>
 
             <div className="action-btn">
-              {/* <button className="btn green">
-                <FontAwesomeIcon className="icon-block" icon={faVideo} />
-                New Meeting
-              </button> */}
               <div className="input-block">
                 <div className="input-section">
-                  {/* <FontAwesomeIcon className="icon-block" icon={faKeyboard} /> */}
+                  <FontAwesomeIcon className="icon-block" icon={faKeyboard} />
                   <input placeholder="Username" ref={userRef} />
                 </div>
                 <div className="input-section">
-                  {/* <FontAwesomeIcon className="icon-block" icon={faKeyboard} /> */}
+                  <FontAwesomeIcon className="icon-block" icon={faKeyboard} />
                   <input placeholder="Room name" ref={roomRef} />
                 </div>
               </div>

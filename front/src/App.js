@@ -39,7 +39,7 @@ function App() {
   return (
     <Routes>
       <Route
-        path="/:id"
+        path="/:name/:room"
         element={
           // <Check >
           <CallPage />

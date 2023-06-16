@@ -9,20 +9,24 @@ const ProvideContext = ({ children }) => {
   const location = useLocation();
   const [chat, setChat] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [me, setMe] = useState('')
 
   useEffect(() => {
-    socket.on('me', (id) => console.log(id));
-    socket.emit('checkRoom');
-
-    socket.on('roomCheckResult', ({ isInRoom, roomId }) => {
-      if (isInRoom) {
-        console.log('The user is already in a room' + roomId);
-        if (location.pathname !== `/${roomId}`) {
-          navigate(`/${roomId}`);
-        }
-        // Handle the case when the user is already in a room
-      }
+    socket.on('me', (id) => {
+      console.log(id);
+      setMe(id);
     });
+    // socket.emit('checkRoom');
+
+    // socket.on('roomCheckResult', ({ isInRoom, roomId }) => {
+    //   if (isInRoom) {
+    //     console.log('The user is already in a room' + roomId);
+    //     if (location.pathname !== `/${roomId}`) {
+    //       navigate(`/${roomId}`);
+    //     }
+    //     // Handle the case when the user is already in a room
+    //   }
+    // });
   }, []);
   // useEffect(() => {
   //   // listening on incomming messages ::
@@ -36,7 +40,7 @@ const ProvideContext = ({ children }) => {
   // }, []);
 
   return (
-    <SocketContext.Provider value={{ isLoading, setIsLoading }}>{children}</SocketContext.Provider>
+    <SocketContext.Provider value={{ isLoading, setIsLoading, me }}>{children}</SocketContext.Provider>
   );
 };
 export { SocketContext, ProvideContext };
