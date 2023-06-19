@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack');
 const HtmlWebPackPlugin = require("html-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
@@ -27,7 +28,7 @@ module.exports = {
         test: /\.s[ac]ss$/i,
         use: ['style-loader', 'css-loader', 'sass-loader'],
       },
-      
+
       // {
       //   test: /\.css$/,
       //   use: [
@@ -58,6 +59,9 @@ module.exports = {
     historyApiFallback: true,
   },
   plugins: [
+    new webpack.DefinePlugin({
+      'process.env': '{}', // Define process.env as an empty object in the browser
+    }),
     new MiniCssExtractPlugin({
       filename: "styles.css",
       chunkFilename: "styles.css"

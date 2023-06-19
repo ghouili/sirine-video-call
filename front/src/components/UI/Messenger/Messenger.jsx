@@ -105,7 +105,7 @@ function Messenger({
         return socket.timeout(5000).emit(
           "send-message",
           {
-            roomId: params.id,
+            roomId: params.room,
             sender,
             message: `${path}/uploads/files/${result.data.data}`,
             time,
@@ -127,7 +127,7 @@ function Messenger({
         .timeout(5000)
         .emit(
           "send-message",
-          { roomId: params.id, sender, message: text, time, isFile: false },
+          { roomId: params.room, sender, message: text, time, isFile: false },
           () => {
             setIsLoading(false);
             setIsFileValid(false); // Reset isFileValid state

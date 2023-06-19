@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 // import Peer from "peerjs";
 import Peer from "simple-peer";
-// import wrtc from "wrtc";
+import wrtc from "wrtc";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import {
@@ -53,6 +53,10 @@ function CallPage() {
   const userVideoRef = useRef();
   const screenTrackRef = useRef();
   const userStream = useRef();
+
+  if (typeof process === "undefined") {
+    var process = { env: {} };
+  }
 
   const [gotFile, setGotFile] = useState("");
   const [localStream, setLocalStream] = useState(null);
@@ -157,9 +161,9 @@ function CallPage() {
         // get back the signal from the peer we already called an created in the socket.on("FE-user-join"::::
         socket.on("FE-call-accepted", ({ signal, answerId }) => {
           console.log("call Accepted:");
-          console.log(signal);
           const peerIdx = findPeer(answerId);
-          peerIdx.peer.signal(signal);
+          console.log(peerIdx);
+          // peerIdx.peer.signal(signal);
         });
 
         socket.on("FE-user-leave", ({ userId, userName }) => {
@@ -259,6 +263,7 @@ function CallPage() {
       initiator: true,
       trickle: false,
       stream,
+      wrtc: wrtc,
     });
 
     peer.on("signal", (signal) => {
