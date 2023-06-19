@@ -1,12 +1,12 @@
 import React, { useEffect, useRef } from "react";
 const VideoCard = ({ peer, videodata }) => {
   const ref = useRef();
-  console.log(peer);
+  // console.log(peer);
   useEffect(() => {
     // console.log(peer);
-    ref.current.srcObject = peer.streams[0];
+    // ref.current.srcObject = peer.streams[0];
     peer.on("stream", (stream) => {
-      // ref.current.srcObject = stream;
+      ref.current.srcObject = stream;
       // console.log(stream);
     });
     // peer.on("track", (track, stream) => {});

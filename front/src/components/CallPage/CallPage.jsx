@@ -1,5 +1,7 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
+// import Peer from "peerjs";
 import Peer from "simple-peer";
+// import wrtc from "wrtc";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 import {
@@ -20,14 +22,14 @@ import "./CallPage.scss";
 
 import CallPageFooter from "../UI/CallPageFooter/CallPageFooter";
 import CallPageHeader from "../UI/CallPageHeader/CallPageHeader";
-import Messenger from "./../UI/Messenger/Messenger";
+import Messenger from "../UI/Messenger/Messenger";
 import { socket } from "../../Socket";
 import { useParams } from "react-router-dom";
 import { SocketContext } from "../../Context/SocketContext";
 
 function CallPage() {
   const params = useParams();
-  const { me} =useContext(SocketContext);
+  const { me } = useContext(SocketContext);
   let name = params.name;
   let roomId = params.room;
   let socketIds = socket.id;
@@ -69,21 +71,20 @@ function CallPage() {
       .then((currentStream) => {
         setStream(currentStream);
         myVideo.current.srcObject = currentStream;
+        userStream.current = stream;
 
         socket.emit("joinRoom", {
           roomId,
           name,
-          currentStream,
           socketId: socket.id,
         });
 
-        // console.log(socket);
+        // after joining we get back all users so we create a peer for each on and we call them all then we save the peers:::::
         socket.on("all users", ({ name, users }) => {
-          
           const peers = [];
           users.forEach((user) => {
-            console.log(user.id);
-            console.log(socket.id);
+            // console.log(user.id);
+            // console.log(socket.id);
             if (user.id !== socket.id) {
               const peer = createPeer(user.id, socket.id, currentStream);
               // console.log(peer);
@@ -94,7 +95,7 @@ function CallPage() {
               peersRef.current.push({
                 peerID: user.id,
                 peer,
-                name,
+                userName: user.name,
               });
               peers.push(peer);
 
@@ -119,15 +120,19 @@ function CallPage() {
           // console.log(peersRef);
         });
 
+        // when we get a call we chack if the id exists already else we create a peer and return the signal to the caller :::::
         socket.on("FE-receive-call", ({ signal, from, info }) => {
           let { name, stream } = info;
           // console.log('findPeer(from):');
           // console.log(findPeer(from));
+          console.log(from);
           const peerIdx = findPeer(from);
-          // console.log(peerIdx);
+          console.log(peerIdx);
+          console.log("recieved the cal:");
 
           if (!peerIdx) {
-            const peer = addPeer(signal, from, stream);
+            const peer = addPeer(signal, from, currentStream);
+            console.log(peer);
 
             peer.userName = name;
 
@@ -149,23 +154,29 @@ function CallPage() {
           // console.log(peers);
         });
 
+        // get back the signal from the peer we already called an created in the socket.on("FE-user-join"::::
         socket.on("FE-call-accepted", ({ signal, answerId }) => {
+          console.log("call Accepted:");
+          console.log(signal);
           const peerIdx = findPeer(answerId);
           peerIdx.peer.signal(signal);
         });
 
-        // socket.on("FE-user-leave", ({ userId, userName }) => {
-        //   // console.log('left  ' + userName);
-        //   const peerIdx = findPeer(userId);
-        //   peerIdx.peer.destroy();
-        //   setPeers((users) => {
-        //     users = users.filter((user) => user.peerID !== peerIdx.peer.peerID);
-        //     return [...users];
-        //   });
-        //   peersRef.current = peersRef.current.filter(
-        //     ({ peerID }) => peerID !== userId
-        //   );
-        // });
+        socket.on("FE-user-leave", ({ userId, userName }) => {
+          const peerIdx = findPeer(userId);
+          if (peerIdx && peerIdx.peer) {
+            peerIdx?.peer?.destroy();
+            setPeers((users) => {
+              users = users.filter(
+                (user) => user.peerID !== peerIdx.peer.peerID
+              );
+              return [...users];
+            });
+            peersRef.current = peersRef.current.filter(
+              ({ peerID }) => peerID !== userId
+            );
+          }
+        });
       })
       .catch((error) => {
         // Handle getUserMedia error
@@ -192,6 +203,57 @@ function CallPage() {
     };
   }, []);
 
+  // function createPeer(userId, caller, stream) {
+  //   const peer = new Peer(userId, {
+  //     initiator: true,
+  //     trickle: false,
+  //     stream,
+  //   });
+
+  //   console.log("should signal create");
+  //   peer.on("signal", (signal) => {
+  //     // Emit the signal to the server
+  //     console.log("createPeer : ----");
+  //     console.log(peer);
+  //     socket.emit("BE-call-user", {
+  //       userToCall: userId,
+  //       from: caller,
+  //       signal,
+  //     });
+  //   });
+
+  //   peer.on("disconnect", () => {
+  //     peer.destroy();
+  //   });
+
+  //   return peer;
+  // }
+
+  // function addPeer(incomingSignal, callerId, stream) {
+  //   const peer = new Peer({
+  //     initiator: false,
+  //     trickle: false,
+  //     stream,
+  //   });
+  //   console.log("should signal add");
+  //   peer.on("signal", (signal) => {
+  //     console.log("AddPeer signal:");
+  //     console.log(peer);
+  //     socket.emit("BE-accept-call", { signal, to: callerId });
+  //   });
+
+  //   peer.on("disconnect", () => {
+  //     peer.destroy();
+  //   });
+
+  //   peer.signal(incomingSignal);
+
+  //   return peer;
+  // }
+
+  // function findPeer(id) {
+  //   return peersRef.current.find((p) => p.peerID === id);
+  // }
   function createPeer(userId, caller, stream) {
     const peer = new Peer({
       initiator: true,
@@ -200,6 +262,9 @@ function CallPage() {
     });
 
     peer.on("signal", (signal) => {
+      // it works
+      // console.log("CreatePeer signal: ");
+      // console.log(signal);
       socket.emit("BE-call-user", {
         userToCall: userId,
         from: caller,
@@ -209,7 +274,6 @@ function CallPage() {
 
     // Add a custom function to establish the connection manually
 
-    console.log(peer);
     peer.on("disconnect", () => {
       peer.destroy();
     });
@@ -223,8 +287,9 @@ function CallPage() {
       trickle: false,
       stream,
     });
-
     peer.on("signal", (signal) => {
+      console.log("AddPeer signal:");
+      console.log(signal);
       socket.emit("BE-accept-call", { signal, to: callerId });
     });
 
@@ -444,34 +509,35 @@ function CallPage() {
             </div>
           )}
         </div>
-        {peers?.map((peer, idx, arr) => {
-          // console.log(userVideoAudio[peer.userName].video);
-          let video = userVideoAudio[peer.userName];
-          // console.log(peer);
-          if (video) {
-          }
+        {peers &&
+          peers.map((peer, idx, arr) => {
+            // console.log(userVideoAudio[peer.userName].video);
+            let video = userVideoAudio[peer.userName];
+            // console.log(peer);
+            if (video) {
+            }
 
-          return (
-            <div
-              key={idx}
-              // className="w-full h-full flex justify-center items-center"
-              className={`w-full h-full flex  flex-col rounded justify-center items-center  ${
-                video && video.video ? null : "border-4 border-gray-50"
-              }`}
-              onClick={expandScreen}
-            >
-              {video && video.video ? null : (
-                <div className="w-full flex justify-end text-white ">
-                  <FontAwesomeIcon
-                    className="mt-6 mr-6 text-red-700 text-2xl"
-                    icon={faVideoSlash}
-                  />
-                </div>
-              )}
-              <VideoCard videodata={video} peer={peer} number={arr.length} />
-            </div>
-          );
-        })}
+            return (
+              <div
+                key={idx}
+                // className="w-full h-full flex justify-center items-center"
+                className={`w-full h-full flex  flex-col rounded justify-center items-center  ${
+                  video && video.video ? null : "border-4 border-gray-50"
+                }`}
+                onClick={expandScreen}
+              >
+                {video && video.video ? null : (
+                  <div className="w-full flex justify-end text-white ">
+                    <FontAwesomeIcon
+                      className="mt-6 mr-6 text-red-700 text-2xl"
+                      icon={faVideoSlash}
+                    />
+                  </div>
+                )}
+                <VideoCard videodata={video} peer={peer} number={arr.length} />
+              </div>
+            );
+          })}
         {/* <div className="border w-full h-full border-black">
             here we go
           </div>

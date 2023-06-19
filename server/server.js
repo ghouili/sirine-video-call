@@ -66,10 +66,10 @@ io.on("connection", (socket) => {
   });
 
 
-  socket.on("joinRoom", ({ roomId, name, currentStream, socketId }) => {
+  socket.on("joinRoom", ({ roomId, name, socketId }) => {
     if (rooms.has(roomId)) {
       let chec = rooms.get(roomId);
-      console.log( chec );
+      // console.log(chec);
     }
     // Check if the socket.id already exists in the room
     const existingUser = rooms.has(roomId)
@@ -87,11 +87,11 @@ io.on("connection", (socket) => {
       if (!rooms.has(roomId)) {
         rooms.set(roomId, {
           name: roomId,
-          users: [{ id: socketId, name, stream: { streamData: currentStream, video: true, audio: true } }],
+          users: [{ id: socketId, name, stream: { video: true, audio: true } }],
         });
       } else {
         const room = rooms.get(roomId);
-        room.users.push({ id: socketId, name, stream: { streamData: currentStream, video: true, audio: true } });
+        room.users.push({ id: socketId, name, stream: {video: true, audio: true } });
         rooms.set(roomId, room);
       }
 
@@ -99,7 +99,7 @@ io.on("connection", (socket) => {
     // console.log(rooms);
 
     // Broadcast the updated room details to all clients in the room
-    io.to(roomId).emit("all users", rooms.get(roomId));
+    socket.broadcast.to(roomId).emit("all users", rooms.get(roomId));
     // Broadcast the updated room details to all clients in the room
     // io.to(roomId).emit("roomDetails", rooms.get(roomId));
 
@@ -110,16 +110,21 @@ io.on("connection", (socket) => {
   socket.on("BE-call-user", ({ userToCall, from, signal }) => {
     // console.log("io.sockets.sockets.get(socket.id)  : -----------------");
     // console.log(io.sockets.sockets.get(socket.id));
-    // console.log(signal);
+    let info = findRoomBySocketId(socket.id);
+
+    // console.log("info  s: ");
+    // console.log(info);
     io.to(userToCall).emit("FE-receive-call", {
       signal,
       from,
-      info: findRoomBySocketId(socket.id),
+      info,
     });
   });
 
 
   socket.on("BE-accept-call", ({ signal, to }) => {
+    // console.log(`call accepted passint to ${to}`);
+    // console.log(signal);
     io.to(to).emit("FE-call-accepted", {
       signal,
       answerId: socket.id,
@@ -147,7 +152,7 @@ io.on("connection", (socket) => {
 
   socket.on("BE-leave-room", ({ roomId, name }) => {
     deleteUserFromRoom(roomId, name)
-    console.log(rooms);
+    // console.log(rooms);
     console.log(`${socket.id} left room ${roomId}`);
     socket.broadcast
       .to(roomId)
