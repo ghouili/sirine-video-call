@@ -16,17 +16,16 @@ const ProvideContext = ({ children }) => {
       console.log(id);
       setMe(id);
     });
-    // socket.emit('checkRoom');
-
-    // socket.on('roomCheckResult', ({ isInRoom, roomId }) => {
-    //   if (isInRoom) {
-    //     console.log('The user is already in a room' + roomId);
-    //     if (location.pathname !== `/${roomId}`) {
-    //       navigate(`/${roomId}`);
-    //     }
-    //     // Handle the case when the user is already in a room
-    //   }
-    // });
+      socket.on("receive-message", ({ sender, message, time, isFile }) => {
+        console.log(chat);
+        setChat((chat) => [...chat, { message, sender, time, isFile }]);
+      });
+  
+      return () => {
+        // BAD: this will remove all listeners for the 'foo' event, which may
+        // include the ones registered in another component
+        socket.off("receive-message");
+      };
   }, []);
   // useEffect(() => {
   //   // listening on incomming messages ::
@@ -40,7 +39,7 @@ const ProvideContext = ({ children }) => {
   // }, []);
 
   return (
-    <SocketContext.Provider value={{ isLoading, setIsLoading, me }}>{children}</SocketContext.Provider>
+    <SocketContext.Provider value={{ isLoading, setIsLoading, me, chat, setChat }}>{children}</SocketContext.Provider>
   );
 };
 export { SocketContext, ProvideContext };

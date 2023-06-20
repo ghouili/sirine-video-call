@@ -27,9 +27,10 @@ function Messenger({
   setGotFile,
 }) {
   const params = useParams();
-  const { setIsLoading } = useContext(SocketContext);
+  let sender = params.name;
+  const { setIsLoading, chat, setChat } = useContext(SocketContext);
   let time = moment(new Date()).format("hh:mm A");
-  const [chat, setChat] = useState([]);
+  // const [chat, setChat] = useState([]);
   const [text, setText] = useState("");
   // const [file, setFile] = useState(null);
   let path = "http://localhost:5000";
@@ -69,18 +70,18 @@ function Messenger({
     /* props.onInput(props.id, pickedFile, fileIsValid); */
   };
 
-  useEffect(() => {
-    socket.on("receive-message", ({ sender, message, time, isFile }) => {
-      console.log(chat);
-      setChat((chat) => [...chat, { message, sender, time, isFile }]);
-    });
+  // useEffect(() => {
+  //   socket.on("receive-message", ({ sender, message, time, isFile }) => {
+  //     console.log(chat);
+  //     setChat((chat) => [...chat, { message, sender, time, isFile }]);
+  //   });
 
-    return () => {
-      // BAD: this will remove all listeners for the 'foo' event, which may
-      // include the ones registered in another component
-      socket.off("receive-message");
-    };
-  }, []);
+  //   return () => {
+  //     // BAD: this will remove all listeners for the 'foo' event, which may
+  //     // include the ones registered in another component
+  //     socket.off("receive-message");
+  //   };
+  // }, []);
 
   // Scroll to Bottom of Message List
   useEffect(() => {
@@ -93,7 +94,6 @@ function Messenger({
 
   const sendMessage = async () => {
     setIsLoading(true);
-    let sender = localStorage.getItem("name");
 
     if (file) {
       const formData = new FormData();
@@ -127,7 +127,13 @@ function Messenger({
         .timeout(5000)
         .emit(
           "send-message",
-          { roomId: params.room, sender, message: text, time, isFile: false },
+          {
+            roomId: params.room,
+            sender,
+            message: text,
+            time,
+            isFile: false,
+          },
           () => {
             setIsLoading(false);
             setIsFileValid(false); // Reset isFileValid state

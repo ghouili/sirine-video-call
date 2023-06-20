@@ -20,7 +20,7 @@ function HomePage() {
     }
     const roomName = roomRef.current.value;
     const userName = userRef.current.value;
-    navigate(`${userName}/${roomName}`);
+    navigate(`${userName}/${roomName}/1/1`);
   }
 
   return (

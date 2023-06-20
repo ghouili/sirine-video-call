@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 // import { useReactMediaRecorder } from "react-media-recorder";
 
@@ -15,6 +15,8 @@ import {
   faStop,
 } from "@fortawesome/free-solid-svg-icons";
 import "./CallPageFooter.scss";
+import { socket } from "../../../Socket";
+import { useNavigate, useParams } from "react-router-dom";
 
 function CallPageFooter({
   clickChat,
@@ -28,8 +30,14 @@ function CallPageFooter({
   videoDevices,
   showVideoDevices,
   setShowVideoDevices,
+  peersRef,
+  setPeers,
 }) {
-  const [showModal, setShowModal] = React.useState(false);
+  const navigate = useNavigate();
+  const params = useParams();
+  let name = params.name;
+  let roomId = params.room;
+  const [showModal, setShowModal] = useState(false);
   // const { status, startRecording, stopRecording, mediaBlobUrl } =
   //   useReactMediaRecorder({ screen: true, type: "video/mp4" });
 
@@ -42,6 +50,23 @@ function CallPageFooter({
   //     return;
   //   }
   // }, [status]);
+
+  const HangUp = async () => {
+    socket.emit("BE-leave-room", {
+      roomId,
+      leaver: socket.id,
+      name,
+    });
+    // Destroy all peers
+    peersRef.current.forEach(({ peer }) => {
+      peer.destroy();
+    });
+
+    // Clear peers and peersRef
+    setPeers([]);
+    peersRef.current = [];
+    return navigate("/");
+  };
 
   return (
     <div className="footer-item">
@@ -59,7 +84,7 @@ function CallPageFooter({
             <FontAwesomeIcon className="icon " icon={faMicrophoneSlash} />
           )}
         </div>
-        <div className="icon-block" onClick={goToBack}>
+        <div className="icon-block" onClick={HangUp}>
           <FontAwesomeIcon className="icon red" icon={faPhone} />
         </div>
         <div className="icon-block" onClick={toggleCamera}>

@@ -28,10 +28,12 @@ import { useParams } from "react-router-dom";
 import { SocketContext } from "../../Context/SocketContext";
 
 function CallPage() {
-  const params = useParams();
   const { me } = useContext(SocketContext);
+  const params = useParams();
   let name = params.name;
   let roomId = params.room;
+  let IPPP = params.IPPP;
+  let id_admin = params.id_admin;
   let socketIds = socket.id;
 
   // let name = localStorage.getItem("name");
@@ -571,6 +573,8 @@ function CallPage() {
         videoDevices={videoDevices}
         showVideoDevices={showVideoDevices}
         setShowVideoDevices={setShowVideoDevices}
+        peersRef={peersRef}
+        setPeers={setPeers}
       />
       {/* <MeetingInfo  /> */}
 
