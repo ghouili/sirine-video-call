@@ -3,6 +3,8 @@ const app = express();
 const server = require("http").createServer(app);
 const cors = require("cors");
 const path = require('path');
+const mysql = require('mysql');
+const moment = require('moment');
 
 const fileUpload = require('./MiddleWare/UploadFiles');
 
@@ -15,6 +17,12 @@ const io = require("socket.io")(server, {
 
 app.use(cors());
 
+const db = mysql.createPool({
+  host: 'localhost',
+  user: 'root',
+  password: '',
+  database: 'MP2L-2',
+});
 // Data structure to store room names and associated users
 const rooms = new Map();
 
@@ -91,7 +99,7 @@ io.on("connection", (socket) => {
         });
       } else {
         const room = rooms.get(roomId);
-        room.users.push({ id: socketId, name, stream: {video: true, audio: true } });
+        room.users.push({ id: socketId, name, stream: { video: true, audio: true } });
         rooms.set(roomId, room);
       }
 
@@ -138,10 +146,24 @@ io.on("connection", (socket) => {
 
   socket.on('send-message', ({ roomId, sender, message, time, isFile }, callback) => {
 
+    let date = moment().format('LLL');
     try {
       // console.log({ roomId, sender, message, time, isFile });
       io.to(roomId).emit('receive-message', { sender, message, time, isFile }); // Emit the message to all clients in the room
-
+      if (isFile) {
+        db.query(
+          "INSERT INTO fichiers SET ?", { date, fichier: message, room: roomId },
+          (err, result) => {
+            if (err) {
+              console.log("not done", err);
+              //res.send(err);
+            } else {
+              console.log("done");
+  
+            }
+          }
+        )
+      }
       callback(); // Invoke the callback function to acknowledge successful message sending
     } catch (error) {
       // Handle any errors that occurred during message sending
